@@ -29,17 +29,53 @@ export function RepoTable({ organization, username }: RepoTableProps) {
   const [error, setError] = React.useState<string | null>(null);
   const [openRepo, setOpenRepo] = React.useState<string | null>(null);
   const [current_organization, setOrganization] = React.useState<string>('');
+  const [apiResponse, setApiResponse] = React.useState(null);
 
   const handleModalClose = () => setOpenRepo(null);
-  const handleFileSubmit = (selectedFiles: { filepaths: string[] }) => {
+  const handleFileSubmit = async (selectedFiles: { filepaths: string[] }, repo_name :string) => {
     // Handle file selection
     console.log(selectedFiles);
     handleModalClose();
+    const { filepaths } = selectedFiles;
+    const accessToken = Cookies.get('access_token'); // Get access token from cookies
+
+    if (!accessToken) {
+      console.error('Access token not found');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.postlog.gethiroscope.com/repo/generate-postman-collection/${organization}/${repo_name}/contents/`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-access-tokens': `${accessToken}`
+          },
+          body: JSON.stringify({ filepaths })
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setApiResponse(data); // Store API response in state
+    } catch (error) {
+      console.error('Error submitting files:', error);
+    }
+
   };
 
 
   // Fetch repositories from the API
   React.useEffect(() => {
+
+    if(apiResponse){
+      console.log("API Response", apiResponse)
+    }
 
     async function fetchRepos() {
       setLoading(true);
@@ -48,7 +84,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
         setOrganization(organization);
         // Fetch token from cookies
         const token = Cookies.get("access_token")
-        console.log("Access", token)
+        // console.log("Access", token)
 
         if (!token) {
           throw new Error("Access token not found in cookies");
@@ -106,7 +142,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
     }
 
     fetchRepos();
-  }, [organization]); // Re-fetch data if the organization changes
+  }, [organization, apiResponse]); // Re-fetch data if the organization changes
 
   if (loading) {
     return <div>Loading repositories...</div>;

@@ -25,7 +25,7 @@ interface FileSelectorModalProps {
   branch: string;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (selectedFiles: { filepaths: string[] }) => void;
+  onSubmit: (selectedFiles: { filepaths: string[] }, repo_name: string) => void;
 }
 
 export function FileSelectorModal({
@@ -51,12 +51,14 @@ export function FileSelectorModal({
       })
         .then(response => response.json())
         .then(data => {
+          console.log('Fetched data:', data);
           const hierarchicalFiles = buildFileHierarchy(data.files);
           setFiles(hierarchicalFiles);
         })
         .catch(error => {
           console.error('Error fetching files:', error);
         });
+
     }
   }, [isOpen, repo, branch]);
 
@@ -195,7 +197,7 @@ export function FileSelectorModal({
           <Button variant="outline" onClick={onClose} className="mr-auto">
             Close
           </Button>
-          <Button onClick={() => onSubmit({ filepaths: selectedFiles })}>
+          <Button onClick={() => onSubmit({ filepaths: selectedFiles }, repo)}>
             Select File(s) ({selectedFiles.length})
           </Button>
         </DialogFooter>
