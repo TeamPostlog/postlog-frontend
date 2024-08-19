@@ -5,10 +5,8 @@ import { AccountCombobox } from "./account-selector";
 import { RepoTable } from "./repo-table";
 import { MenuItem } from './types';
 import { useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'; // Use correct hooks for App Router
+import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import Cookies from "js-cookie";
-
-
 
 export function Dashboard () {
     const [selectedItem, setSelectedItem] = useState('Repositories');
@@ -16,9 +14,11 @@ export function Dashboard () {
     const pathname = usePathname();
     const searchParams = useSearchParams();
     const [username, setUsername] = useState('');
-    const [userImage, setuserImage] = useState('');
+    const [userImage, setUserImage] = useState('');
+    const [name, setName] = useState('');
+    const [selectedOrganisation, setSelectedOrganisation] = useState('');
 
-    const menuItems : MenuItem [] = [
+    const menuItems : MenuItem[] = [
         {
             href: '#', icon: SquareChartGantt , label: 'Repositories', children: false, id: undefined
         },
@@ -28,19 +28,13 @@ export function Dashboard () {
     ];
 
     const handleMainMenuClick = (label: string) => {
-        if (label === 'Repositories'){
-            setSelectedItem('Repositories');
-        } else if (label === 'Collaborators'){
-            setSelectedItem('Collaborators');
-        }
+        setSelectedItem(label);
     }
 
     const fetchUser = async() => {
         try {
             console.log("Fetching User Details");
             const token = Cookies.get('access_token');
-            console.log(token)
-
             if(!token){
                 throw new Error('No access token found');
             }
@@ -59,31 +53,36 @@ export function Dashboard () {
                 throw new Error(data.message || 'Failed to fetch user details');
             }
 
-
             setUsername(data.user.username)
-            setuserImage(data.user.avatar_url)
+            setUserImage(data.user.avatar_url)
+            setName(data.user.name)
 
-        }catch (e){
+        } catch (e) {
             console.log("Error in fetching user:", e)
-
         }
+    }
 
+    const handleAccountSelect = (account: string) => {
+        setSelectedOrganisation(account);
     }
 
     useEffect(() => {
-        fetchUser();
-        // Check if the access_token query parameter is present
-        if (searchParams.get('access_token')) {
-          // Create a new URL object
-          const newUrl = new URL(window.location.href);
-          newUrl.searchParams.delete('access_token');
-    
-          // Update the URL without reloading the page
-          window.history.replaceState({}, '', newUrl.toString());
+        if (!selectedOrganisation) {
+            setSelectedOrganisation(username); // Set default to username
         }
-      }, [searchParams]);
+    }, [username, selectedOrganisation]);
 
-    return(
+    useEffect(() => {
+        fetchUser();
+
+        if (searchParams.get('access_token')) {
+            const newUrl = new URL(window.location.href);
+            newUrl.searchParams.delete('access_token');
+            window.history.replaceState({}, '', newUrl.toString());
+        }
+    }, [searchParams]);
+
+    return (
         <div className="flex h-screen">
             <aside className="flex flex-col items-center w-[25vh] p-4 border-r">
                 <div className="mb-10">
@@ -100,7 +99,7 @@ export function Dashboard () {
                     </Avatar>
                 </div>
                 <div className="flex items-center justify-center text-xl">
-                    Kuldeep Paul
+                    {name}
                 </div>
                 <div className="flex items-center justify-center text-sm mb-20 md:w-full sm:w-1/2 overflow-hidden whitespace-nowrap">
                     <span className="text-ellipsis">
@@ -108,63 +107,60 @@ export function Dashboard () {
                     </span>
                 </div>
 
-
                 <nav className="flex-1">
                     {menuItems.map((item) => (
                         <div key={item.label} className="flex-1 items-center justify-center w-full mb-4">
-                        <Button variant="ghost" 
-                        className={`flex items-center w-full text-center text-lg font-normal ${selectedItem === item.label ? 'text-primary bg-gray-100' : 'text-muted-foreground hover:text-foreground'}`}
-                        onClick={() => handleMainMenuClick(item.label)}
-                        >
-                            <item.icon className="mr-4"/>
-                            <span>{item.label}</span>
-                        </Button>
+                            <Button variant="ghost" 
+                                className={`flex items-center w-full text-center text-lg font-normal ${selectedItem === item.label ? 'text-primary bg-gray-100' : 'text-muted-foreground hover:text-foreground'}`}
+                                onClick={() => handleMainMenuClick(item.label)}
+                            >
+                                <item.icon className="mr-4"/>
+                                <span>{item.label}</span>
+                            </Button>
                         </div>
-
                     ))}
-                    
                 </nav>
 
-
                 <div className="flex bottom-20 items-center justify-center mb-4">
-                <Button variant="ghost" className="flex items-center w-full text-center text-lg font-normal">
+                    <Button variant="ghost" className="flex items-center w-full text-center text-lg font-normal">
                         <Settings className="mr-4"/>
                         Settings
-                </Button>
+                    </Button>
                 </div>
             </aside>
 
-            {selectedItem === 'Repositories'?(
+            {selectedItem === 'Repositories' ? (
+                <div className="flex flex-col w-[100vh] mx-auto overflow-auto p-10">
+                    <div className="flex mt-5 mb-12">
+                        <div className="text-3xl font-semibold">
+                            Repositories
+                        </div>
+                        <div className="ml-auto mr-[5vh]">
+                            {username && (
+                                <AccountCombobox 
+                                    username={username} 
+                                    userAvatar={userImage} 
+                                    onAccountSelect={handleAccountSelect} 
+                                />
+                            )}
+                        </div>
+                    </div>
+                    <div className="mr-[5vh]">
+                        <RepoTable username={username} organization={selectedOrganisation} />
+                    </div>
+                </div>
+            ) : selectedItem === 'Collaborators' ? (
                 <div className="flex flex-col w-[100vh] mx-auto p-10">
-                <div className="flex mt-5 mb-12">
-                    <div className="text-3xl font-semibold">
-                        Repositories
+                    <div className="flex mt-5 mb-12">
+                        <div className="text-3xl font-semibold">
+                            Collaborators
+                        </div>
                     </div>
-                    <div className="ml-auto mr-[5vh]">
-                    <AccountCombobox />
+                    <div className="mr-[5vh]">
+                        Collaborator Table
                     </div>
-                    
                 </div>
-                <div className="mr-[5vh]">
-                    <RepoTable/>
-                </div>
-            </div>
-        
-        ):selectedItem === 'Collaborators'?(
-            <div className="flex flex-col w-[100vh] mx-auto p-10">
-                <div className="flex mt-5 mb-12">
-                    <div className="text-3xl font-semibold">
-                        Collaborators
-                    </div>
-                    
-                </div>
-                <div className="mr-[5vh]">
-                    Collaborator Table
-                </div>
-            </div>
-
-        ):null}
+            ) : null}
         </div>
-            
     )
 }
