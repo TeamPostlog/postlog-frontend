@@ -267,13 +267,6 @@ export function RepoTable({ organization, username }: RepoTableProps) {
                    >
                    <RotateCcw />
                    </Button>
-                   {/* JSON Modal */}
-                  <JsonModal
-                      isOpen={showJsonModal}
-                      onClose={handsleJsonModalClose}
-                      jsonData={jsonData}
-                      collection_url={repo.collection_url}
-                    />
                 </div>
                 
                ) : (
@@ -298,6 +291,13 @@ export function RepoTable({ organization, username }: RepoTableProps) {
                        onSubmit={handleFileSubmit}
                      />
                    )}
+                   {/* JSON Modal */}
+                  <JsonModal
+                      isOpen={showJsonModal}
+                      onClose={handsleJsonModalClose}
+                      jsonData={jsonData}
+                      collection_url={repo.collection_url}
+                    />
                  </div>
               </div>
  
