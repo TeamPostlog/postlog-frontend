@@ -80,6 +80,10 @@ export function RepoTable({ organization, username }: RepoTableProps) {
       const data = await response.json();
       setApiResponse(data); // Store API response in state
       setJsonData(data); // Store the JSON response data
+      if (!showJsonModal) {
+        setShowJsonModal(true); // Open the modal to show JSON response
+        console.log("Opened Json Modal")
+      }
     } catch (error) {
       console.error('Error submitting files:', error);
     }
@@ -199,10 +203,6 @@ export function RepoTable({ organization, username }: RepoTableProps) {
         setError("Failed to fetch repositories.");
       } finally{
         setLoading(false);
-        if (jsonData && !showJsonModal) {
-          setShowJsonModal(true); // Open the modal to show JSON response
-          console.log("Opened Json Modal")
-        }
       }
     }
 
@@ -221,8 +221,6 @@ export function RepoTable({ organization, username }: RepoTableProps) {
 
   const handsleJsonModalClose = () => {
     setShowJsonModal(false);
-    setJsonData('');
-
   }
 
   // if (error) {
