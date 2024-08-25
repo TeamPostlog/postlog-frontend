@@ -2,13 +2,18 @@ import * as React from "react";
 import { Button } from "./ui/button";
 import Cookies from "js-cookie";
 import {FileSelectorModal} from "./file-selector-modal";
+import { BranchSelector } from "./branch-selector";
+import { Download, RotateCcw, Trash2 } from "lucide-react";
 
 // Define TypeScript interfaces for repo data
 interface Repo {
   branch: string;
+  branch_names: string[];
   collection_generated: boolean;
+  collection_url: string;
   repo_name: string;
   repo_url: string;
+  selectedBranch?: string;
 }
 
 interface RepoResponse {
@@ -25,7 +30,7 @@ interface RepoTableProps {
 
 export function RepoTable({ organization, username }: RepoTableProps) {
   const [repos, setRepos] = React.useState<Repo[]>([]);
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [openRepo, setOpenRepo] = React.useState<string | null>(null);
   const [current_organization, setOrganization] = React.useState<string>('');
@@ -69,6 +74,37 @@ export function RepoTable({ organization, username }: RepoTableProps) {
 
   };
 
+  const handleReset = async(repo: string) => {
+    const accessToken = Cookies.get('access_token'); // Get access token from cookies
+
+    if (!accessToken) {
+      console.error('Access token not found');
+      return;
+    }
+
+    try {
+      const response = await fetch(
+        `https://api.postlog.gethiroscope.com/repo/delete-collection/${organization}/${repo}`,
+        {
+          method: 'POST',
+          headers: {
+            'x-access-tokens': `${accessToken}`
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      setApiResponse(data); 
+    } catch (error) {
+      console.error('Error Resetting collection:', error);
+    }
+
+  }
+
 
   // Fetch repositories from the API
   React.useEffect(() => {
@@ -78,8 +114,6 @@ export function RepoTable({ organization, username }: RepoTableProps) {
     }
 
     async function fetchRepos() {
-      setLoading(true);
-
       try {
         setOrganization(organization);
         // Fetch token from cookies
@@ -109,6 +143,8 @@ export function RepoTable({ organization, username }: RepoTableProps) {
   
           const data: RepoResponse = await response.json();
           setRepos(data.data); // Set the repository data
+          console.log("Repo Data: ", data.data)
+
 
         } else {
           const response = await fetch("https://api.postlog.gethiroscope.com/repo/get_repositories", {
@@ -130,6 +166,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
   
           const data: RepoResponse = await response.json();
           setRepos(data.data); // Set the repository data
+          console.log("Repo Data: ", data.data)
 
         }
 
@@ -137,12 +174,21 @@ export function RepoTable({ organization, username }: RepoTableProps) {
         console.error(error);
         setError("Failed to fetch repositories.");
       } finally {
-        setLoading(false);
       }
     }
 
     fetchRepos();
   }, [organization, apiResponse]); // Re-fetch data if the organization changes
+
+  const handleBranchSelect = (repoUrl: string, selectedBranch: string) => {
+    setRepos(prevRepos =>
+      prevRepos.map(repo =>
+        repo.repo_url === repoUrl
+          ? { ...repo, selectedBranch }
+          : repo
+      )
+    );
+  };
 
   if (loading) {
     return <div>Loading repositories...</div>;
@@ -161,15 +207,34 @@ export function RepoTable({ organization, username }: RepoTableProps) {
         >
           {/* Repo name and branch */}
           <div className="flex w-1/3 overflow-hidden whitespace-nowrap">
-            {repo.repo_name} ({repo.branch})
+            {repo.repo_name}
           </div>
 
-          <div className="flex-1 flex items-center text-muted-foreground">
+            {loading ?(<div className="flex-1 flex"> Generating... </div>):(null)}
+          
+
             {repo.collection_generated ? (
-               //space for the branch selector and download collection
-              null
+               //space for the download collection and delete collection
+               <div className="flex-1 flex justify-end p-2 space-x-2"> 
+                  <Button
+                    onClick={() => {window.open(repo.collection_url, '_blank');}}
+                  >
+                    Download  <Download className="ml-3"/>
+                  </Button>
+
+                <Button
+                    variant="destructive"
+                    onClick={() => handleReset(repo.repo_name)}
+                  >
+                  <RotateCcw />
+                  </Button>
+               </div>
+               
               ) : (
-                //Space for the Import button
+              <div className="flex-1 flex items-center text-muted-foreground">
+                <div className="flex w-1/3 overflow-hidden whitespace-nowrap">
+                    <BranchSelector branches={repo.branch_names} default_branch={repo.branch} onBranchSelect={(selectedBranch) => handleBranchSelect(repo.repo_url, selectedBranch)} />
+                </div>
                 <div className="flex ml-auto">
                   <Button
                     onClick={() => setOpenRepo(repo.repo_url)}
@@ -178,17 +243,19 @@ export function RepoTable({ organization, username }: RepoTableProps) {
                   </Button>
                   {openRepo === repo.repo_url && (
                     <FileSelectorModal
+                      username= {username}
                       organisation={current_organization}
                       repo={repo.repo_name}
-                      branch={repo.branch}
+                      branch={repo.selectedBranch || repo.branch}
                       isOpen={Boolean(openRepo)}
                       onClose={handleModalClose}
                       onSubmit={handleFileSubmit}
                     />
                   )}
                 </div>
+             </div>
+
               )}
-          </div>
           {/* Import button */}
           
         </div>

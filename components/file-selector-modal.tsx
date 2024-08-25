@@ -20,15 +20,17 @@ interface FileNode {
 
 // Props for the FileSelectorModal component
 interface FileSelectorModalProps {
+  username: string;
   organisation: string;
   repo: string;
-  branch: string;
+  branch: string | undefined;
   isOpen: boolean;
   onClose: () => void;
   onSubmit: (selectedFiles: { filepaths: string[] }, repo_name: string) => void;
 }
 
 export function FileSelectorModal({
+  username,
   organisation,
   repo,
   branch,
@@ -44,21 +46,38 @@ export function FileSelectorModal({
   useEffect(() => {
     if (isOpen) {
       const accessToken = Cookies.get("access_token");
-      fetch(`https://api.postlog.gethiroscope.com/repo/fetch_repo_files/${repo}/${branch}`, {
-        headers: {
-          'x-access-tokens': `${accessToken}` // Include the access token in the headers
-        }
-      })
-        .then(response => response.json())
-        .then(data => {
-          console.log('Fetched data:', data);
-          const hierarchicalFiles = buildFileHierarchy(data.files);
-          setFiles(hierarchicalFiles);
+      if (organisation===username){
+        fetch(`https://api.postlog.gethiroscope.com/repo/fetch_repo_files/${repo}/${branch}`, {
+          headers: {
+            'x-access-tokens': `${accessToken}` // Include the access token in the headers
+          }
         })
-        .catch(error => {
-          console.error('Error fetching files:', error);
-        });
+          .then(response => response.json())
+          .then(data => {
+            console.log('Fetched data:', data);
+            const hierarchicalFiles = buildFileHierarchy(data.files);
+            setFiles(hierarchicalFiles);
+          })
+          .catch(error => {
+            console.error('Error fetching files:', error);
+          });
 
+      } else {
+        fetch(`https://api.postlog.gethiroscope.com/repo/fetch_repo_files/${organisation}/${repo}/${branch}`, {
+          headers: {
+            'x-access-tokens': `${accessToken}` // Include the access token in the headers
+          }
+        })
+          .then(response => response.json())
+          .then(data => {
+            console.log('Fetched data:', data);
+            const hierarchicalFiles = buildFileHierarchy(data.files);
+            setFiles(hierarchicalFiles);
+          })
+          .catch(error => {
+            console.error('Error fetching files:', error);
+          });
+      }
     }
   }, [isOpen, repo, branch]);
 
@@ -185,7 +204,7 @@ export function FileSelectorModal({
           <DialogTitle>
             <div className="flex items-center gap-2">
               <GithubIcon className="h-6 w-6" />
-              <span>{organisation} / {repo}</span>
+              <span>{organisation} / {repo} / {branch}</span>
             </div>
           </DialogTitle>
           <DialogDescription>Browse and select files from the repository.</DialogDescription>
