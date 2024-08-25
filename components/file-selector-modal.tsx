@@ -23,10 +23,10 @@ interface FileSelectorModalProps {
   username: string;
   organisation: string;
   repo: string;
-  branch: string | undefined;
+  branch: string;
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (selectedFiles: { filepaths: string[] }, repo_name: string) => void;
+  onSubmit: (selectedFiles: { filepaths: string[] }, repo_name: string, repo_branch: string) => void;
 }
 
 export function FileSelectorModal({
@@ -216,7 +216,7 @@ export function FileSelectorModal({
           <Button variant="outline" onClick={onClose} className="mr-auto">
             Close
           </Button>
-          <Button onClick={() => onSubmit({ filepaths: selectedFiles }, repo)}>
+          <Button onClick={() => onSubmit({ filepaths: selectedFiles }, repo, branch)}>
             Select File(s) ({selectedFiles.length})
           </Button>
         </DialogFooter>

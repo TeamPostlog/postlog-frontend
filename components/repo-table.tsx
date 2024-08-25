@@ -37,7 +37,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
   const [apiResponse, setApiResponse] = React.useState(null);
 
   const handleModalClose = () => setOpenRepo(null);
-  const handleFileSubmit = async (selectedFiles: { filepaths: string[] }, repo_name :string) => {
+  const handleFileSubmit = async (selectedFiles: { filepaths: string[] }, repo_name :string, repo_branch: string) => {
     // Handle file selection
     console.log(selectedFiles);
     handleModalClose();
@@ -51,7 +51,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
 
     try {
       const response = await fetch(
-        `https://api.postlog.gethiroscope.com/repo/generate-postman-collection/${organization}/${repo_name}/contents/`,
+        `https://api.postlog.gethiroscope.com/repo/generate-postman-collection/${organization}/${repo_name}/${repo_branch}/contents/`,
         {
           method: 'POST',
           headers: {
