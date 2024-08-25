@@ -1,29 +1,31 @@
-import { Settings, SquareChartGantt, UsersRound } from "lucide-react";
+import { LogOutIcon, PhoneIcon, Settings, SquareChartGantt, UsersRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { Button } from "./ui/button";
 import { AccountCombobox } from "./account-selector";
 import { RepoTable } from "./repo-table";
 import { MenuItem } from './types';
 import { useEffect, useState } from "react";
-import { useRouter, usePathname, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Cookies from "js-cookie";
+import { ClipLoader } from "react-spinners";
+import LogoutButton from "./logout-button";
+import Feedback from "./canny-feedback"
 
 export function Dashboard () {
     const [selectedItem, setSelectedItem] = useState('Repositories');
-    const router = useRouter();
-    const pathname = usePathname();
     const searchParams = useSearchParams();
     const [username, setUsername] = useState('');
     const [userImage, setUserImage] = useState('');
     const [name, setName] = useState('');
     const [selectedOrganisation, setSelectedOrganisation] = useState('');
+    const [loading, setLoading] = useState(true)
 
     const menuItems : MenuItem[] = [
         {
             href: '#', icon: SquareChartGantt , label: 'Repositories', children: false, id: undefined
         },
         {
-            href: '#', icon: UsersRound , label: 'Collaborators', children: false, id: undefined
+            href: '#', icon: UsersRound , label: 'Feedback', children: false, id: undefined
         },
     ];
 
@@ -59,12 +61,15 @@ export function Dashboard () {
 
         } catch (e) {
             console.log("Error in fetching user:", e)
+        } finally {
+            setLoading(false)
         }
     }
 
     const handleAccountSelect = (account: string) => {
         setSelectedOrganisation(account);
     }
+
 
     useEffect(() => {
         if (!selectedOrganisation) {
@@ -83,8 +88,12 @@ export function Dashboard () {
     }, [searchParams]);
 
     return (
-        <div className="flex h-screen">
-            <aside className="flex flex-col items-center w-[25vh] p-4 border-r">
+        <div className="flex h-screen justify-center">
+            {loading?(
+                <ClipLoader />
+            ):(
+            <>
+                <aside className="flex flex-col items-center w-[25vh] p-4 border-r">
                 <div className="mb-10">
                     <img 
                         src="/logo.svg"
@@ -122,10 +131,7 @@ export function Dashboard () {
                 </nav>
 
                 <div className="flex bottom-20 items-center justify-center mb-4">
-                    <Button variant="ghost" className="flex items-center w-full text-center text-lg font-normal">
-                        <Settings className="mr-4"/>
-                        Settings
-                    </Button>
+                    <LogoutButton/>
                 </div>
             </aside>
 
@@ -149,18 +155,26 @@ export function Dashboard () {
                         <RepoTable username={username} organization={selectedOrganisation} />
                     </div>
                 </div>
-            ) : selectedItem === 'Collaborators' ? (
-                <div className="flex flex-col w-[100vh] mx-auto p-10">
-                    <div className="flex mt-5 mb-12">
+            ) : selectedItem === 'Feedback' ? (
+                <div className="flex flex-col w-[100vh] h-full mx-auto overflow-auto p-10">
+                    <div className="flex mt-5 mb-10">
                         <div className="text-3xl font-semibold">
-                            Collaborators
+                            Feedback and Feature Requests
+                        </div>
+                        <div className="ml-auto">
+                            <Button onClick={() => {window.open("https://cal.com/postlog/quick-catchup-call", '_blank');}}>
+                                <PhoneIcon className="mr-4 w-4 h-4"/> Call the Founders 
+                            </Button>
                         </div>
                     </div>
-                    <div className="mr-[5vh]">
-                        Collaborator Table
+                    <div className="h-full overflow-auto">
+                    <Feedback/>
                     </div>
                 </div>
             ) : null}
+            </>
+
+            )}            
         </div>
     )
 }

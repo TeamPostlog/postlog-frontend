@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox"; // Assuming this is your custom Checkbox component
 import Cookies from 'js-cookie';
+import { ClipLoader } from 'react-spinners';
 
 // Type definition for the structure of the files
 interface FileNode {
@@ -36,12 +37,13 @@ export function FileSelectorModal({
   branch,
   isOpen,
   onClose,
-  onSubmit
+  onSubmit, 
 }: FileSelectorModalProps) {
   const [files, setFiles] = useState<FileNode[]>([]);
   const [selectedFiles, setSelectedFiles] = useState<string[]>([]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [isChecked, setIsChecked] = useState<{ [key: string]: boolean }>({});
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (isOpen) {
@@ -103,6 +105,10 @@ export function FileSelectorModal({
     setSelectedFiles(newSelectedFiles);
   }, [isChecked]);
 
+  useEffect(() => {
+    console.log("Loading:", loading)
+  }, [loading])
+
   // This function converts a flat list of file paths into a hierarchical structure
   function buildFileHierarchy(fileList: string[]): FileNode[] {
     const root: FileNode[] = [];
@@ -124,6 +130,7 @@ export function FileSelectorModal({
         }
       });
     });
+    setLoading(false)
     return root;
   }
 
@@ -207,11 +214,18 @@ export function FileSelectorModal({
               <span>{organisation} / {repo} / {branch}</span>
             </div>
           </DialogTitle>
-          <DialogDescription>Browse and select files from the repository.</DialogDescription>
+          <DialogDescription>Browse and select relevant files from the repository for the API documentation.</DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          {files.map(node => renderFileNode(node))}
-        </div>
+        {loading?(
+          <div className="flex justify-center items-center h-full">
+            <ClipLoader size={60} color="#000000"/>
+          </div>
+        ):(
+          <div className="space-y-2">
+            {files.map(node => renderFileNode(node))}
+          </div>
+        )}
+        
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className="mr-auto">
             Close

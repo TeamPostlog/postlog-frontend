@@ -4,6 +4,8 @@ import Cookies from "js-cookie";
 import {FileSelectorModal} from "./file-selector-modal";
 import { BranchSelector } from "./branch-selector";
 import { Download, RotateCcw, Trash2 } from "lucide-react";
+import { ClipLoader, ScaleLoader } from "react-spinners";
+import { JsonModal } from "./json-modal";
 
 // Define TypeScript interfaces for repo data
 interface Repo {
@@ -14,6 +16,7 @@ interface Repo {
   repo_name: string;
   repo_url: string;
   selectedBranch?: string;
+  loading?: boolean;
 }
 
 interface RepoResponse {
@@ -30,14 +33,22 @@ interface RepoTableProps {
 
 export function RepoTable({ organization, username }: RepoTableProps) {
   const [repos, setRepos] = React.useState<Repo[]>([]);
-  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [openRepo, setOpenRepo] = React.useState<string | null>(null);
   const [current_organization, setOrganization] = React.useState<string>('');
   const [apiResponse, setApiResponse] = React.useState(null);
+  const [loading, setLoading] = React.useState<boolean>(true);
+  const [showJsonModal, setShowJsonModal] = React.useState(false);
+  const [jsonData, setJsonData] = React.useState<any>(null);
 
   const handleModalClose = () => setOpenRepo(null);
   const handleFileSubmit = async (selectedFiles: { filepaths: string[] }, repo_name :string, repo_branch: string) => {
+    setRepos(prevRepos =>
+      prevRepos.map(repo =>
+        repo.repo_name === repo_name ? { ...repo, loading: true } : repo
+      )
+    );
+
     // Handle file selection
     console.log(selectedFiles);
     handleModalClose();
@@ -68,13 +79,20 @@ export function RepoTable({ organization, username }: RepoTableProps) {
 
       const data = await response.json();
       setApiResponse(data); // Store API response in state
+      setJsonData(data); // Store the JSON response data
     } catch (error) {
       console.error('Error submitting files:', error);
     }
 
   };
 
-  const handleReset = async(repo: string) => {
+  const handleReset = async(repo_name: string) => {
+    setRepos(prevRepos =>
+      prevRepos.map(repo =>
+        repo.repo_name === repo_name ? { ...repo, loading: true } : repo
+      )
+    );
+    
     const accessToken = Cookies.get('access_token'); // Get access token from cookies
 
     if (!accessToken) {
@@ -84,7 +102,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
 
     try {
       const response = await fetch(
-        `https://api.postlog.gethiroscope.com/repo/delete-collection/${organization}/${repo}`,
+        `https://api.postlog.gethiroscope.com/repo/delete-collection/${organization}/${repo_name}`,
         {
           method: 'POST',
           headers: {
@@ -125,6 +143,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
         }
 
         if(organization===username){
+          console.log("org:", organization)
           const response = await fetch("https://api.postlog.gethiroscope.com/repo/get_repositories", {
             method: "POST",
             headers: {
@@ -138,6 +157,7 @@ export function RepoTable({ organization, username }: RepoTableProps) {
           });
 
           if (!response.ok) {
+            console.log("Organisation:", organization)
             throw new Error("Failed to fetch repositories");
           }
   
@@ -146,7 +166,9 @@ export function RepoTable({ organization, username }: RepoTableProps) {
           console.log("Repo Data: ", data.data)
 
 
-        } else {
+        } else if (organization) {
+          console.log("org:", organization)
+
           const response = await fetch("https://api.postlog.gethiroscope.com/repo/get_repositories", {
             method: "POST",
             headers: {
@@ -161,6 +183,8 @@ export function RepoTable({ organization, username }: RepoTableProps) {
           });
 
           if (!response.ok) {
+            console.log("Organisation:", organization)
+
             throw new Error("Failed to fetch repositories");
           }
   
@@ -173,7 +197,12 @@ export function RepoTable({ organization, username }: RepoTableProps) {
       } catch (error) {
         console.error(error);
         setError("Failed to fetch repositories.");
-      } finally {
+      } finally{
+        setLoading(false);
+        if (jsonData && !showJsonModal) {
+          setShowJsonModal(true); // Open the modal to show JSON response
+          console.log("Opened Json Modal")
+        }
       }
     }
 
@@ -190,15 +219,25 @@ export function RepoTable({ organization, username }: RepoTableProps) {
     );
   };
 
-  if (loading) {
-    return <div>Loading repositories...</div>;
+  const handsleJsonModalClose = () => {
+    setShowJsonModal(false);
+    setJsonData('');
+
   }
 
-  if (error) {
-    return <div>{error}</div>;
-  }
+  // if (error) {
+  //   return <div>{error}</div>;
+  // }
 
   return (
+    <>
+    {loading?(
+      <div className="flex items-center justify-center">
+        <ClipLoader/>
+      </div>
+    ):(
+
+   
     <div>
       {repos.map((repo) => (
         <div
@@ -210,56 +249,75 @@ export function RepoTable({ organization, username }: RepoTableProps) {
             {repo.repo_name}
           </div>
 
-            {loading ?(<div className="flex-1 flex"> Generating... </div>):(null)}
+            {repo.loading ?(
+              <div  className="flex-1 flex justify-end p-2 space-x-2">
+                <ScaleLoader color="#000000"/>
+              </div>
+            ):(
+              repo.collection_generated ? (
+                //space for the download collection and delete collection
+                <div className="flex-1 flex justify-end p-2 space-x-2"> 
+                   <Button
+                     onClick={() => {window.open(repo.collection_url, '_blank');}}
+                   >
+                     Download  <Download className="ml-3"/>
+                   </Button>
+ 
+                 <Button
+                     variant="destructive"
+                     onClick={() => handleReset(repo.repo_name)}
+                   >
+                   <RotateCcw />
+                   </Button>
+                   {/* JSON Modal */}
+                  <JsonModal
+                      isOpen={showJsonModal}
+                      onClose={handsleJsonModalClose}
+                      jsonData={jsonData}
+                      collection_url={repo.collection_url}
+                    />
+                </div>
+                
+               ) : (
+               <div className="flex-1 flex items-center text-muted-foreground">
+                 <div className="flex w-1/3 overflow-hidden whitespace-nowrap">
+                     <BranchSelector branches={repo.branch_names} default_branch={repo.branch} onBranchSelect={(selectedBranch) => handleBranchSelect(repo.repo_url, selectedBranch)} />
+                 </div>
+                 <div className="flex ml-auto">
+                   <Button
+                     onClick={() => setOpenRepo(repo.repo_url)}
+                   >
+                     Import
+                   </Button>
+                   {openRepo === repo.repo_url && (
+                     <FileSelectorModal
+                       username= {username}
+                       organisation={current_organization}
+                       repo={repo.repo_name}
+                       branch={repo.selectedBranch || repo.branch}
+                       isOpen={Boolean(openRepo)}
+                       onClose={handleModalClose}
+                       onSubmit={handleFileSubmit}
+                     />
+                   )}
+                 </div>
+              </div>
+ 
+               )
+            )}
           
 
-            {repo.collection_generated ? (
-               //space for the download collection and delete collection
-               <div className="flex-1 flex justify-end p-2 space-x-2"> 
-                  <Button
-                    onClick={() => {window.open(repo.collection_url, '_blank');}}
-                  >
-                    Download  <Download className="ml-3"/>
-                  </Button>
-
-                <Button
-                    variant="destructive"
-                    onClick={() => handleReset(repo.repo_name)}
-                  >
-                  <RotateCcw />
-                  </Button>
-               </div>
-               
-              ) : (
-              <div className="flex-1 flex items-center text-muted-foreground">
-                <div className="flex w-1/3 overflow-hidden whitespace-nowrap">
-                    <BranchSelector branches={repo.branch_names} default_branch={repo.branch} onBranchSelect={(selectedBranch) => handleBranchSelect(repo.repo_url, selectedBranch)} />
-                </div>
-                <div className="flex ml-auto">
-                  <Button
-                    onClick={() => setOpenRepo(repo.repo_url)}
-                  >
-                    Import
-                  </Button>
-                  {openRepo === repo.repo_url && (
-                    <FileSelectorModal
-                      username= {username}
-                      organisation={current_organization}
-                      repo={repo.repo_name}
-                      branch={repo.selectedBranch || repo.branch}
-                      isOpen={Boolean(openRepo)}
-                      onClose={handleModalClose}
-                      onSubmit={handleFileSubmit}
-                    />
-                  )}
-                </div>
-             </div>
-
-              )}
+            
           {/* Import button */}
           
         </div>
       ))}
     </div>
-  );
+  
+
+    )} 
+
+  </>
+)
+
 }
