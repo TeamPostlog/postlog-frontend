@@ -93,7 +93,7 @@ export function Dashboard () {
                 <ClipLoader />
             ):(
             <>
-                <aside className="flex flex-col items-center w-[25vh] p-4 border-r">
+                <aside className="flex flex-col items-center w-[25vh] p-4 border-r fixed top-0 left-0 h-full">
                 <div className="mb-10">
                     <img 
                         src="/logo.svg"
@@ -135,8 +135,9 @@ export function Dashboard () {
                 </div>
             </aside>
 
+            <div className="ml-[25vh] flex-1 overflow-auto">
             {selectedItem === 'Repositories' ? (
-                <div className="flex flex-col w-[100vh] mx-auto overflow-auto p-10">
+                <div className="flex flex-col w-[100vh] mx-auto overflow-y-hidden p-10">
                     <div className="flex mt-5 mb-12">
                         <div className="text-3xl font-semibold">
                             Repositories
@@ -172,6 +173,8 @@ export function Dashboard () {
                     </div>
                 </div>
             ) : null}
+
+            </div>
             </>
 
             )}            
