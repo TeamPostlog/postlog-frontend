@@ -1,50 +1,41 @@
 import React from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { ClipLoader } from 'react-spinners';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ClipLoader } from 'react-spinners'; // Optional: Use if you need a loading state
 import { Download } from 'lucide-react';
 
 interface JsonModalProps {
   isOpen: boolean;
   onClose: () => void;
   jsonData: any;
-  isLoading?: boolean;
+  isLoading?: boolean; // Optional: Add loading state if needed
   collection_url?: string;
 }
 
-export function JsonModal({
-  isOpen,
-  onClose,
-  jsonData,
-  isLoading = false,
-  collection_url
-}: JsonModalProps) {
+export function JsonModal({ isOpen, onClose, jsonData, isLoading = false, collection_url }: JsonModalProps) {
+  // Optional: Log the collection_url for debugging purposes
+  console.log(collection_url);
+
+  // Ensure the Dialog component receives the correct props
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[800px] max-h-[80vh] overflow-auto">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        onClose();
+      }
+    }}>
+      <DialogContent className="max-w-[90vh] max-h-[80vh] overflow-auto">
         <DialogHeader>
-          <DialogTitle>
-            <div className="flex items-center gap-2">
-              <span>API Response</span>
-            </div>
-          </DialogTitle>
-          <DialogDescription>View the JSON response from the API call.</DialogDescription>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.open(collection_url, '_blank')}
-          >
-            <Download className="h-5 w-5" />
-            Download
-          </Button>
+          <DialogTitle>API Response</DialogTitle>
+          <DialogDescription>
+            View the JSON response from the API call.
+          </DialogDescription>
+          <Button className='w-full'
+                     onClick={() => {window.open(collection_url, '_blank');}}
+                   >
+                     Download  <Download className="ml-3"/>
+                   </Button>
         </DialogHeader>
+
         {isLoading ? (
           <div className="flex justify-center items-center h-full">
             <ClipLoader size={60} color="#000000" />
@@ -54,6 +45,7 @@ export function JsonModal({
             {JSON.stringify(jsonData, null, 2)}
           </pre>
         )}
+
         <DialogFooter>
           <Button variant="outline" onClick={onClose} className="mr-auto">
             Close
